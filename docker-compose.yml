@@ -1,0 +1,59 @@
+version: '3.3'
+services:
+  flask:
+    build: 
+      context: app
+      dockerfile: Dockerfile
+    container_name: flask
+    image: ivanmasnari/poesia_errante_flask
+    restart: unless-stopped
+    env_file:
+      - env/flask.env
+    volumes:
+      - appdata:/var/www
+    depends_on:
+      - mongodb
+    networks:
+      - backend
+      - frontend
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    command: mongod --auth
+    env_file:
+      - env/mongo.env
+    volumes:
+      - mongodbdata:/data/db
+      - ./db/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - backend
+  webserver:
+    build: 
+      context: nginx
+      dockerfile: Dockerfile
+    image: ivanmasnari/poesia_errante_nginx
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - nginxdata:/var/log/nginx
+    depends_on:
+      - flask
+    networks:
+      - frontend
+  
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  mongodbdata:
+    driver: local
+  appdata:
+    driver: local
+  nginxdata:
+    driver: local
